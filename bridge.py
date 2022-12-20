@@ -96,6 +96,7 @@ def bridge(this_model_manager, this_bridge_data):
                                 logger.debug("Added a new job from the horde to the queue, for model: {}", job_model)
                                 waiting_jobs.append((new_job, pop))
                             else:
+                                time.sleep(0.5)  # Don't hammer the server if there's no generations waiting
                                 del new_job
 
                         while len(running_jobs) < this_bridge_data.max_threads:
@@ -122,8 +123,8 @@ def bridge(this_model_manager, this_bridge_data):
                                 logger.warning(
                                     f"Restarting all jobs, as a job was running for more than 180 seconds: {runtime:.3f}s"
                                 )
-                                for inner_job in running_jobs:  # Sometimes it's already removed
-                                    running_jobs.remove(inner_job)
+                                for (inner_job, inner_start_time) in running_jobs:  # Sometimes it's already removed
+                                    running_jobs.remove((inner_job, inner_start_time))
                                     job.cancel()
                                 executor.shutdown(wait=False)
                                 break
