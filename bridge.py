@@ -24,6 +24,7 @@ def reload_data(this_bridge_data):
 def bridge(this_model_manager, this_bridge_data):
     """This is the worker, it's the main workhorse that deals with getting requests, and spawning data processing"""
     running_jobs = []
+    waiting_jobs = []
     run_count = 0
     last_config_reload = 0  # Means immediate config reload
     logger.stats("Starting new stats session")
@@ -87,39 +88,39 @@ def bridge(this_model_manager, this_bridge_data):
                             )
                             continue
 
-                        pop_count = 0
-                        while len(running_jobs) < this_bridge_data.max_threads:
-                            pop_count += 1
-                            if pop_count > 3:  # Just to allow reload to fire
-                                break
+                        if len(waiting_jobs) < this_bridge_data.queue_size:
                             new_job = HordeJob(this_model_manager, this_bridge_data)
                             pop = new_job.get_job_from_server()  # This sleeps itself, so no need for extra
-                            if pop is None:
+                            if pop:
+                                job_model = pop.get("model", "Unknown")
+                                logger.debug("Added a new job from the horde to the queue, for model: {}", job_model)
+                                waiting_jobs.append((new_job, pop))
+                            else:
                                 del new_job
-                                continue
-                            job_model = pop.get("model", "Unknown")
-                            logger.debug("Got a new job from the horde for model: {}", job_model)
-                            running_jobs.append(executor.submit(new_job.start_job, pop))
 
-                        for job in running_jobs:
+                        while len(running_jobs) < this_bridge_data.max_threads:
+                            if len(waiting_jobs) > 0:
+                                job, pop = waiting_jobs.pop(0)
+                                job_model = pop.get("model", "Unknown")
+                                logger.debug("Starting job for model: {}", job_model)
+                                running_jobs.append((executor.submit(job.start_job, pop), time.monotonic()))
+                                logger.debug("job submitted")
+
+                        for (job, start_time) in running_jobs:
+                            runtime = time.monotonic() - start_time
                             if job.done():
+                                if job.exception(timeout=1):
+                                    logger.error("Job failed with exception, {}", job.exception())
+                                    logger.exception(job.exception())
                                 run_count += 1
-                                logger.debug("Job finished successfully (Total Completed: {})", run_count)
-                                running_jobs.remove(job)
+                                logger.debug(f"Job finished successfully in {runtime:.3f}s (Total Completed: {run_count})")
+                                running_jobs.remove((job, start_time))
                                 continue
 
-                            if job.exception():
-                                logger.error("Job failed with exception, {}", job.exception())
-                                logger.exception(job.exception())
-                                if job in running_jobs:  # Sometimes it's already removed
-                                    running_jobs.remove(job)
-                                continue
-
-                            # check if any job has run for more than 60 seconds
-                            if job.running() and job.running_for() > 180:
+                            # check if any job has run for more than 180 seconds
+                            if job.running() and runtime > 180:
                                 logger.warning(
-                                    "Restarting all jobs, as job as was running for more than 180 seconds: {}",
-                                    job.running_for(),
+                                    f"Restarting all jobs, as a job was running for more than 180 seconds: {runtime:.3f}s"
                                 )
                                 for inner_job in running_jobs:  # Sometimes it's already removed
                                     running_jobs.remove(inner_job)
@@ -127,7 +128,7 @@ def bridge(this_model_manager, this_bridge_data):
                                 executor.shutdown(wait=False)
                                 break
 
-                        time.sleep(0.1)  # Give the CPU a break
+                        time.sleep(0.02)  # Give the CPU a break
                     except KeyboardInterrupt:
                         should_stop = True
                         break
