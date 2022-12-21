@@ -34,7 +34,7 @@ class BridgeData:
         self.priority_usernames = list(filter(lambda a: a, os.environ.get("HORDE_PRIORITY_USERNAMES", "").split(",")))
         self.max_power = int(os.environ.get("HORDE_MAX_POWER", 8))
         self.max_threads = int(os.environ.get("HORDE_MAX_THREADS", 1))
-        self.queue_size = int(os.environ.get("HORDE_QUEUE_SIZE", 1))
+        self.queue_size = int(os.environ.get("HORDE_QUEUE_SIZE", 0))
         self.nsfw = os.environ.get("HORDE_NSFW", "true") == "true"
         self.censor_nsfw = os.environ.get("HORDE_CENSOR", "false") == "true"
         self.blacklist = list(filter(lambda a: a, os.environ.get("HORDE_BLACKLIST", "").split(",")))

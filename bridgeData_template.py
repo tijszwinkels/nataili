@@ -19,8 +19,8 @@ max_power = 8
 # But remember that the speed of your gens will also be affected for each parallel job
 max_threads = 1
 # We will keep this many requests in the queue so we can start working as soon as a thread is available
-# Recommended to keep at 1
-queue_size = 1
+# Recommended to keep no higher than 1
+queue_size = 0
 # Set this to false, if you do not want your worker to receive requests for NSFW generations
 nsfw = True
 # Set this to True if you want your worker to censor NSFW generations. This will only be active is horde_nsfw == False

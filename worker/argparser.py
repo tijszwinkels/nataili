@@ -53,7 +53,7 @@ arg_parser.add_argument(
     "--queue_size",
     type=int,
     required=False,
-    help="How many requests to keep in the queue. Min: 1",
+    help="How many requests to keep in the queue. Min: 0",
 )
 arg_parser.add_argument(
     "--sfw",

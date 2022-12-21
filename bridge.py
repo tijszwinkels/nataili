@@ -88,25 +88,33 @@ def bridge(this_model_manager, this_bridge_data):
                             )
                             continue
 
+                        # Add job to queue if we have space
                         if len(waiting_jobs) < this_bridge_data.queue_size:
-                            new_job = HordeJob(this_model_manager, this_bridge_data)
-                            pop = new_job.get_job_from_server()  # This sleeps itself, so no need for extra
+                            job, pop = pop_job(this_model_manager, this_bridge_data)
                             if pop:
-                                job_model = pop.get("model", "Unknown")
-                                logger.debug("Added a new job from the horde to the queue, for model: {}", job_model)
-                                waiting_jobs.append((new_job, pop))
-                            else:
-                                time.sleep(0.5)  # Don't hammer the server if there's no generations waiting
-                                del new_job
+                                waiting_jobs.append((job, pop))
 
+                        # Start new jobs
                         while len(running_jobs) < this_bridge_data.max_threads:
-                            if len(waiting_jobs) > 0:
+                            job, pop = (None, None)
+                            # Queue disabled
+                            if this_bridge_data.queue_size == 0:
+                                job, pop = pop_job(this_model_manager, this_bridge_data)
+                            # Queue enabled
+                            elif len(waiting_jobs) > 0:
                                 job, pop = waiting_jobs.pop(0)
+                            else:
+                                break
+                            # Run the job
+                            if pop:
                                 job_model = pop.get("model", "Unknown")
                                 logger.debug("Starting job for model: {}", job_model)
                                 running_jobs.append((executor.submit(job.start_job, pop), time.monotonic()))
                                 logger.debug("job submitted")
+                            else:
+                                logger.debug("No job to start")
 
+                        # Check if any jobs are done
                         for (job, start_time) in running_jobs:
                             runtime = time.monotonic() - start_time
                             if job.done():
@@ -146,6 +154,15 @@ def bridge(this_model_manager, this_bridge_data):
         job.cancel()
     logger.info("Shutting down bridge - Done")
 
+# Helper functions
+def pop_job(this_model_manager, this_bridge_data):
+    new_job = HordeJob(this_model_manager, this_bridge_data)
+    pop = new_job.get_job_from_server()  # This sleeps itself, so no need for extra
+    if pop:
+        job_model = pop.get("model", "Unknown")
+        logger.debug("Got a new job from the horde for model: {}", job_model)
+        return new_job, pop
+    return None, None
 
 if __name__ == "__main__":
     set_logger_verbosity(args.verbosity)
