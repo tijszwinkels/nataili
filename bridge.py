@@ -122,14 +122,17 @@ def bridge(this_model_manager, this_bridge_data):
                                     logger.error("Job failed with exception, {}", job.exception())
                                     logger.exception(job.exception())
                                 run_count += 1
-                                logger.debug(f"Job finished successfully in {runtime:.3f}s (Total Completed: {run_count})")
+                                logger.debug(
+                                    f"Job finished successfully in {runtime:.3f}s (Total Completed: {run_count})"
+                                )
                                 running_jobs.remove((job, start_time))
                                 continue
 
                             # check if any job has run for more than 180 seconds
                             if job.running() and runtime > 180:
                                 logger.warning(
-                                    f"Restarting all jobs, as a job was running for more than 180 seconds: {runtime:.3f}s"
+                                    "Restarting all jobs, as a job was running "
+                                    f"for more than 180 seconds: {runtime:.3f}s"
                                 )
                                 for (inner_job, inner_start_time) in running_jobs:  # Sometimes it's already removed
                                     running_jobs.remove((inner_job, inner_start_time))
@@ -154,6 +157,7 @@ def bridge(this_model_manager, this_bridge_data):
         job.cancel()
     logger.info("Shutting down bridge - Done")
 
+
 # Helper functions
 def pop_job(this_model_manager, this_bridge_data):
     new_job = HordeJob(this_model_manager, this_bridge_data)
@@ -163,6 +167,7 @@ def pop_job(this_model_manager, this_bridge_data):
         logger.debug("Got a new job from the horde for model: {}", job_model)
         return new_job, pop
     return None, None
+
 
 if __name__ == "__main__":
     set_logger_verbosity(args.verbosity)

@@ -335,7 +335,7 @@ class HordeJob:
             logger.debug("Starting generation...")
             generator.generate(**gen_payload)
             logger.debug("Finished generation...")
-            torch_gc() ## TODO: Can we live without this? Adds 200ms to each generation
+            torch_gc()  # TODO: Can we live without this? Adds 200ms to each generation
             logger.debug("gc done...")
         except RuntimeError as err:
             stack_payload = gen_payload
