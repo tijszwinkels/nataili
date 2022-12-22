@@ -15,7 +15,6 @@ from PIL import Image, UnidentifiedImageError
 from nataili.inference.compvis import CompVis
 from nataili.inference.diffusers.inpainting import inpainting
 from nataili.util import logger
-from nataili.util.cache import torch_gc
 from worker.enums import JobStatus
 from worker.post_process import post_process
 from worker.stats import bridge_stats
