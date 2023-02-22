@@ -568,7 +568,7 @@ class CompVis:
                         logger.debug(f"Iteration: {n+1}/{n_iter}")
                         prompts = all_prompts[n * batch_size : (n + 1) * batch_size]
                         seeds = all_seeds[n * batch_size : (n + 1) * batch_size]
-                        uc = model.get_learned_conditioning(negprompt, 1)
+                        uc = get_learned_conditioning_with_prompt_weights(negprompt, model, clip_skip)
 
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
@@ -671,7 +671,7 @@ class CompVis:
                         }
                         un_cond = {
                             "c_concat": [control],
-                            "c_crossattn": [self.control_net_model.get_learned_conditioning(negprompt, 1)],
+                            "c_crossattn": [get_learned_conditioning_with_prompt_weights(negprompt, self.control_net_model, clip_skip)],
                         }
 
                         if cond["c_crossattn"][0].shape[1] != un_cond["c_crossattn"][0].shape[1]:
